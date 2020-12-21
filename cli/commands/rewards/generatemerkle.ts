@@ -1,8 +1,9 @@
 import { cli } from 'cli-ux'
 import fs from 'fs'
-import { flags, Command } from '@oclif/command'
+import { flags } from '@oclif/command'
 import { EventLog } from 'web3-core'
 import { parseBalanceMap } from '../../../src/parse-balance-map'
+import { BaseCommand } from '../../base'
 import {
   AttestationIssuers,
   calculateRewards,
@@ -13,7 +14,7 @@ import {
   RewardsCalculationState,
 } from '../../utils/calculate-rewards'
 
-export default class CalculateRewards extends Command {
+export default class CalculateRewards extends BaseCommand {
   static description = 'Parses Events for data'
 
   static flags = {
@@ -35,7 +36,6 @@ export default class CalculateRewards extends Command {
     }),
     transferEvents: flags.string({
       required: true,
-      multiple: true,
       description: 'File containing Transfer events',
     }),
   }
@@ -46,16 +46,13 @@ export default class CalculateRewards extends Command {
     const balanceToBlock = res.flags.balanceToBlock
     const reward = parseFloat(res.flags.reward)
     const attestationEvents = JSON.parse(fs.readFileSync(res.flags.attestationEvents, 'utf8'))
-    // parse multiple Json events input files
-    const transferEvents = res.flags.transferEvents.reduce(
-      (arr: EventLog[], eventsArr): EventLog[] => {
-        const events = JSON.parse(fs.readFileSync(eventsArr, 'utf8'))
-        return arr.concat(events)
-      },
-      []
-    )
+    const transferEvents = JSON.parse(fs.readFileSync(res.flags.transferEvents, 'utf8'))
     const allEvents: EventLog[] = mergeEvents(attestationEvents, transferEvents)
 
+    if (balanceToBlock <= balanceFromBlock) {
+      this.error('block to start tracking balances cannot be larger than block to finish tracking balances')
+    }
+  
     // State over time
     const trackIssuers: AttestationIssuers = {}
     const attestationCompletions = {}
@@ -73,15 +70,17 @@ export default class CalculateRewards extends Command {
 
     const progressBar = cli.progress()
     progressBar.start(allEvents.length, 0)
-
-    allEvents.forEach((event, index) => {
-      progressBar.update(index)
-      if (
-        event.blockNumber >= state.blockNumberToStartTracking &&
-        !state.startedBlockBalanceTracking
-      ) {
-        initializeBalancesByBlock(state)
-        state.startedBlockBalanceTracking = true
+    
+    for(let index in allEvents) {
+      progressBar.increment()
+      const event = allEvents[index]
+      if(!state.startedBlockBalanceTracking) {
+        if (event.blockNumber >= state.blockNumberToStartTracking ) {
+          initializeBalancesByBlock(state)
+          state.startedBlockBalanceTracking = true  
+        }
+      } else if (event.blockNumber > state.blockNumberToFinishTracking) {
+        break
       }
 
       switch (event.event) {
@@ -94,7 +93,10 @@ export default class CalculateRewards extends Command {
         default:
           throw new Error('Unknown event')
       }
-    })
+    }
+
+    await progressBar.update(allEvents.length)
+    progressBar.stop()
 
     const rewards = calculateRewards(
       balancesByBlock,
@@ -102,16 +104,12 @@ export default class CalculateRewards extends Command {
       state.blockNumberToFinishTracking,
       state.rewardPercentage
     )
-    progressBar.update()
+
+    this.outputToFile('rewardsByAddress.json', rewards, "Reward amounts")
+    this.outputToFile('rewardsCalculationState.json', state, 'Rewards chain state')
 
     const merkleData = parseBalanceMap(rewards)
-    progressBar.update()
-
-    progressBar.stop()
-    fs.writeFileSync('merkleTree.json', JSON.stringify(merkleData, null, 2))
-    fs.writeFileSync('rewardsBalances.json',JSON.stringify( rewards, null, 2))
-    fs.writeFileSync('rewardsCalculationState.json', JSON.stringify(state, null, 2))
-
+    this.outputToFile('merkleTree.json', merkleData, 'Merkle Tree')
     console.info('Done')
   }
 }

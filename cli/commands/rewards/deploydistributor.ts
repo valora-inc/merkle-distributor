@@ -18,8 +18,8 @@ export default class DeployMerkleDistributor extends BaseCommand {
   async run() {
     const res = this.parse(DeployMerkleDistributor)
     const merkleTree = JSON.parse(fs.readFileSync(res.flags.merkleTree, { encoding: 'utf8' }))
-    const from: string = res.flags.from
-    const kit = newKit(this.node(res.flags.env))
+    const from: string = res.flags.from.toLowerCase()
+    const kit = newKit(this.nodeByEnv(res.flags.env))
     const stableToken = await kit.contracts.getStableToken()
     const abi = MerkleDistributor.abi 
     if (res.flags.privateKey) {
@@ -35,8 +35,8 @@ export default class DeployMerkleDistributor extends BaseCommand {
         gasPrice: '30000000000000'
     })
     //@ts-ignore
-    console.log("Distibutor address: ", contract._address)
-    console.log("Merkle root: ", await contract.methods.merkleRoot().call())
-    console.log("Token address: ", await contract.methods.token().call())
+    this.log("Distibutor address: ", contract._address)
+    this.log("Merkle root: ", await contract.methods.merkleRoot().call())
+    this.log("Token address: ", await contract.methods.token().call())
   }
 }

@@ -1,17 +1,19 @@
 import { newKit } from '@celo/contractkit'
-import { flags, Command } from '@oclif/command'
+import { flags } from '@oclif/command'
 import fs from 'fs'
 import { getPastEvents } from '../../utils/events'
 import { BaseCommand } from '../../base'
+import { cli } from 'cli-ux'
 
 export default class FetchEvents extends BaseCommand {
-  static description = 'Fetch AttestationCompleted events from Attestations contract'
+  static description = 'Fetch AttestationCompleted events from Attestations contract and Transfer Events from StableToken contract'
 
   static flags = {
-    fromBlock: flags.integer({ required: true, description: 'Starting Block' }),
+    fromBlock: flags.integer({ required: false, default: 0, description: 'Starting Block' }),
     toBlock: flags.integer({ required: true, description: 'Ending Block' }),
     batchSize: flags.integer({
-      required: true,
+      required: false,
+      default: 100000,
       description: 'batch size of blocks requested by the server at a time',
     }),
     prevAttestationEvents: flags.string({
@@ -32,11 +34,19 @@ export default class FetchEvents extends BaseCommand {
     const batchSize = res.flags.batchSize
     const prevAttestationEvents = parseJsonOrEmptyArray(res.flags.prevAttestationEvents)
     const prevTransferEvents = parseJsonOrEmptyArray(res.flags.prevTransferEvents)
-    const kit = newKit(this.node(res.flags.env))
+    const kit = newKit(this.nodeByEnv(res.flags.env))
     const attestations = await kit.contracts.getAttestations()
     const stableToken = await kit.contracts.getStableToken()
+    
+    if (toBlock < fromBlock) {
+      this.error('Starting block cannot be larger than ending block')
+    }
+    const progressBar = cli.progress()
+    const progressBarTotal = Math.floor(((toBlock - fromBlock)/batchSize + 1) * 2)
+    progressBar.start(progressBarTotal, 0)
 
     const attestationEvents = await getPastEvents(
+      progressBar,
       attestations,
       'AttestationCompleted',
       fromBlock,
@@ -46,6 +56,7 @@ export default class FetchEvents extends BaseCommand {
     )
 
     const transferEvents = await getPastEvents(
+      progressBar,
       stableToken,
       'Transfer',
       fromBlock,
@@ -54,17 +65,11 @@ export default class FetchEvents extends BaseCommand {
       prevTransferEvents
     )
 
+    progressBar.stop()
     const attestationsFile = `attestation-completed-events-${fromBlock}-${toBlock}.json`
-    fs.writeFile(attestationsFile, JSON.stringify(attestationEvents, null, 2), (err) => {
-      if (err) throw err
-    })
-    console.log('AttestationCompleted results output to: ', attestationsFile)
-
     const transferFile = `transfer-cusd-events-${fromBlock}-${toBlock}.json`
-    fs.writeFile(transferFile, JSON.stringify(transferEvents, null, 2), (err) => {
-      if (err) throw err
-    })
-    console.log('Transfer results output to: ', transferFile)
+    this.outputToFile(attestationsFile, attestationEvents, 'AttestationCompleted events')
+    this.outputToFile(transferFile, transferEvents, 'Transfer events')
   }
 }
 
