@@ -7,7 +7,7 @@ export async function getPastEvents(
   fromBlock: number,
   toBlock: number,
   batchSize: number,
-  prevEvents: any[] = []
+  prevEvents: EventLog[] = []
 ): Promise<EventLog[]> {
   // if inclusive range is larger than batchsize, keep reducing range recursively, work back up
   if (toBlock - fromBlock >= batchSize) {

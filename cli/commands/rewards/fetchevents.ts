@@ -9,8 +9,24 @@ export default class FetchEvents extends BaseCommand {
   static description = 'Fetch AttestationCompleted events from Attestations contract and Transfer Events from StableToken contract'
 
   static flags = {
-    fromBlock: flags.integer({ required: false, default: 0, description: 'Starting Block' }),
-    toBlock: flags.integer({ required: true, description: 'Ending Block' }),
+    fromBlock: flags.integer({
+      required: false, 
+      description: '[default: 0] Starting Block' 
+    }),
+    toBlock: flags.integer({
+      required: false,
+      description: 'Ending Block'
+    }),
+    fromDate: flags.string({
+      required: false,
+      exclusive: ['fromBlock'],
+      description: 'collect events starting at this date ("MM/DD/YYYY")'
+    }),
+    toDate: flags.string({
+      required: false,
+      exclusive: ['toBlock'],
+      description: 'collect events until this date ("MM/DD/YYYY")'
+    }),
     batchSize: flags.integer({
       required: false,
       default: 100000,
@@ -29,18 +45,26 @@ export default class FetchEvents extends BaseCommand {
 
   async run() {
     const res = this.parse(FetchEvents)
-    const fromBlock = res.flags.fromBlock
-    const toBlock = res.flags.toBlock
+    let fromBlock = res.flags.fromBlock || 0
+    let toBlock = res.flags.toBlock
+    const fromDate = res.flags.fromDate
+    const toDate = res.flags.toDate
     const batchSize = res.flags.batchSize
     const prevAttestationEvents = parseJsonOrEmptyArray(res.flags.prevAttestationEvents)
     const prevTransferEvents = parseJsonOrEmptyArray(res.flags.prevTransferEvents)
     const kit = newKit(this.nodeByEnv(res.flags.env))
     const attestations = await kit.contracts.getAttestations()
     const stableToken = await kit.contracts.getStableToken()
-    
+
+    // @ts-ignore
+    fromBlock =  await this.determineBlockNumber(fromBlock, fromDate, kit.web3)
+    toBlock = await this.determineBlockNumber(toBlock, toDate, kit.web3)
+
+    if (!toBlock) this.error('Must submit parameter toBlock or toDate')
     if (toBlock < fromBlock) {
-      this.error('Starting block cannot be larger than ending block')
+      this.error('Starting block cannot be more recent than ending block')
     }
+
     const progressBar = cli.progress()
     const progressBarTotal = Math.floor(((toBlock - fromBlock)/batchSize + 1) * 2)
     progressBar.start(progressBarTotal, 0)
