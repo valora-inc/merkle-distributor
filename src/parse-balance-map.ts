@@ -10,6 +10,7 @@ const { isAddress, getAddress } = utils
 interface MerkleDistributorInfo {
   merkleRoot: string
   tokenTotal: string
+  contractAddress: string
   claims: {
     [account: string]: {
       index: number
@@ -87,6 +88,7 @@ export function parseBalanceMap(balances: OldFormat | NewFormat[]): MerkleDistri
   return {
     merkleRoot: tree.getHexRoot(),
     tokenTotal: tokenTotal.toHexString(),
+    contractAddress: "0x0",
     claims,
   }
 }

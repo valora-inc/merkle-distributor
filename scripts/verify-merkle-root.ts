@@ -1,16 +1,4 @@
-import { program } from 'commander'
-import fs from 'fs'
 import { BigNumber, utils } from 'ethers'
-
-program
-  .version('0.0.0')
-  .requiredOption(
-    '-i, --input <path>',
-    'input JSON file location containing the merkle proofs for each account and the merkle root'
-  )
-
-program.parse(process.argv)
-const json = JSON.parse(fs.readFileSync(program.input, { encoding: 'utf8' }))
 
 const combinedHash = (first: Buffer, second: Buffer): Buffer => {
   if (!first) {
@@ -79,33 +67,34 @@ const getRoot = (balances: { account: string; amount: BigNumber; index: number }
   return layers[layers.length - 1][0]
 }
 
-if (typeof json !== 'object') throw new Error('Invalid JSON')
 
-const merkleRootHex = json.merkleRoot
-const merkleRoot = Buffer.from(merkleRootHex.slice(2), 'hex')
+export async function verifyMerkleRoot(merkleData: { [k: string]: any} ) {
+  if (typeof merkleData !== 'object') throw new Error('Invalid JSON')
 
-let balances: { index: number; account: string; amount: BigNumber }[] = []
-let valid = true
-
-Object.keys(json.claims).forEach((address) => {
-  const claim = json.claims[address]
-  const proof = claim.proof.map((p: string) => Buffer.from(p.slice(2), 'hex'))
-  balances.push({ index: claim.index, account: address, amount: BigNumber.from(claim.amount) })
-  if (verifyProof(claim.index, address, claim.amount, proof, merkleRoot)) {
-    console.log('Verified proof for', claim.index, address)
-  } else {
-    console.log('Verification for', address, 'failed')
-    valid = false
+  const merkleRootHex = merkleData.merkleRoot
+  const merkleRoot = Buffer.from(merkleRootHex.slice(2), 'hex')
+  
+  let balances: { index: number; account: string; amount: BigNumber }[] = []
+  let valid = true
+  
+  Object.keys(merkleData.claims).forEach((address) => {
+    const claim = merkleData.claims[address]
+    const proof = claim.proof.map((p: string) => Buffer.from(p.slice(2), 'hex'))
+    balances.push({ index: claim.index, account: address, amount: BigNumber.from(claim.amount) })
+    if (!verifyProof(claim.index, address, claim.amount, proof, merkleRoot)) {
+      console.log('Verification for', address, 'failed')
+      valid = false
+    }
+  })
+  
+  if (!valid) {
+    console.error('Failed validation for 1 or more proofs')
+    process.exit(1)
   }
-})
-
-if (!valid) {
-  console.error('Failed validation for 1 or more proofs')
-  process.exit(1)
+  console.log('Successfully validated all merkle claims')
+  
+  // Root
+  const root = getRoot(balances).toString('hex')
+  console.log('Reconstructed merkle root', root)
+  console.log('Root matches the one read from the JSON?', root === merkleRootHex.slice(2))
 }
-console.log('Done!')
-
-// Root
-const root = getRoot(balances).toString('hex')
-console.log('Reconstructed merkle root', root)
-console.log('Root matches the one read from the JSON?', root === merkleRootHex.slice(2))
