@@ -20,12 +20,12 @@ export default class FetchEvents extends BaseCommand {
     fromDate: flags.string({
       required: false,
       exclusive: ['fromBlock'],
-      description: 'collect events starting at this date ("MM/DD/YYYY")'
+      description: `collect events starting roughly at this date ("MM/DD/YYYY"). ${FetchEvents.dateDisclaimer}`
     }),
     toDate: flags.string({
       required: false,
       exclusive: ['toBlock'],
-      description: 'collect events until this date ("MM/DD/YYYY")'
+      description: `collect events until this date ("MM/DD/YYYY"). ${FetchEvents.dateDisclaimer}`
     }),
     batchSize: flags.integer({
       required: false,

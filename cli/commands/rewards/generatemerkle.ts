@@ -34,12 +34,12 @@ export default class CalculateRewards extends BaseCommand {
     balanceFromDate: flags.string({
       required: false,
       exclusive: ['balanceFromBlock'],
-      description: 'Date from which to start tracking average balance'
+      description: `Date from which to start tracking average balance. ${CalculateRewards.dateDisclaimer}`
     }),
     balanceToDate: flags.string({
       required: false,
       exclusive: ['balanceToBlock'],
-      description: 'Date to finish tracking average balance'
+      description: `Date to finish tracking average balance ${CalculateRewards.dateDisclaimer}`
     }),
     attestationEvents: flags.string({
       required: true,
