@@ -1,4 +1,3 @@
-import { newKit } from '@celo/contractkit'
 import { flags } from '@oclif/command'
 import fs from 'fs'
 import { getPastEvents } from '../../utils/events'
@@ -52,13 +51,12 @@ export default class FetchEvents extends BaseCommand {
     const batchSize = res.flags.batchSize
     const prevAttestationEvents = parseJsonOrEmptyArray(res.flags.prevAttestationEvents)
     const prevTransferEvents = parseJsonOrEmptyArray(res.flags.prevTransferEvents)
-    const kit = newKit(this.nodeByEnv(res.flags.env))
-    const attestations = await kit.contracts.getAttestations()
-    const stableToken = await kit.contracts.getStableToken()
+    const attestations = await this.kit.contracts.getAttestations()
+    const stableToken = await this.kit.contracts.getStableToken()
 
     // @ts-ignore
-    fromBlock =  await this.determineBlockNumber(fromBlock, fromDate, kit.web3)
-    toBlock = await this.determineBlockNumber(toBlock, toDate, kit.web3)
+    fromBlock =  await this.determineBlockNumber(fromBlock, fromDate, this.kit.web3)
+    toBlock = await this.determineBlockNumber(toBlock, toDate, this.kit.web3)
 
     if (!toBlock) this.error('Must submit parameter toBlock or toDate')
     if (toBlock < fromBlock) {
