@@ -11,7 +11,7 @@ enum EnvNodes  {
 
 export abstract class BaseCommand extends Command {
 
-  static dateDisclaimer = "Date is an approximation and matches to an arbitrary block on the given date"
+  static dateDisclaimer = "Date is an approximation and matches to an arbitrary block near the given date"
   
   nodeByEnv(env: string | undefined): string {
     if (env) {      
