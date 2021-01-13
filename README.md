@@ -37,5 +37,5 @@ The following assumes the use of `node@>=10`.
     --env mainnet
 
   # deploy contract with merkle root calculated in with generatemerkle
-  ./bin/run rewards:deploydistributor --merkleTree merkleTree.json --from <address>
+  ./bin/run rewards:deploydistributor --merkleTree merkleTree.json --env local --from <address>
 ```

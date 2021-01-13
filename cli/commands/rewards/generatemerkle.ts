@@ -1,4 +1,5 @@
 import { cli } from 'cli-ux'
+import { newKit } from '@celo/contractkit'
 import fs from 'fs'
 import { flags } from '@oclif/command'
 import { EventLog } from 'web3-core'
@@ -23,12 +24,22 @@ export default class CalculateRewards extends BaseCommand {
       description: 'Percentage of balance reward is equal to'
     }),
     balanceFromBlock: flags.integer({
-      required: true,
+      required: false,
       description: 'Block number from which to start tracking average balance'
     }),
     balanceToBlock: flags.integer({
-      required: true,
+      required: false,
       description: 'Block number to finish tracking average balance'
+    }),
+    balanceFromDate: flags.string({
+      required: false,
+      exclusive: ['balanceFromBlock'],
+      description: `Date from which to start tracking average balance. ${CalculateRewards.dateDisclaimer}`
+    }),
+    balanceToDate: flags.string({
+      required: false,
+      exclusive: ['balanceToBlock'],
+      description: `Date to finish tracking average balance ${CalculateRewards.dateDisclaimer}`
     }),
     attestationEvents: flags.string({
       required: true,
@@ -38,21 +49,30 @@ export default class CalculateRewards extends BaseCommand {
       required: true,
       description: 'File containing Transfer events',
     }),
+    env: flags.string({ required: true, description: 'blockchain environment with which to interact' }),
   }
 
   async run() {
     const res = this.parse(CalculateRewards)
-    const balanceFromBlock = res.flags.balanceFromBlock
-    const balanceToBlock = res.flags.balanceToBlock
+    let balanceFromBlock = res.flags.balanceFromBlock
+    let balanceToBlock = res.flags.balanceToBlock
+    const balanceFromDate = res.flags.balanceFromDate
+    const balanceToDate = res.flags.balanceToDate
     const reward = parseFloat(res.flags.reward)
     const attestationEvents = JSON.parse(fs.readFileSync(res.flags.attestationEvents, 'utf8'))
     const transferEvents = JSON.parse(fs.readFileSync(res.flags.transferEvents, 'utf8'))
     const allEvents: EventLog[] = mergeEvents(attestationEvents, transferEvents)
+    let web3 = newKit(this.nodeByEnv(res.flags.env)).web3
 
-    if (balanceToBlock <= balanceFromBlock) {
+    balanceFromBlock = await this.determineBlockNumber(balanceFromBlock, balanceFromDate, web3)
+    balanceToBlock = await this.determineBlockNumber(balanceToBlock, balanceToDate, web3)
+
+    if (!balanceFromBlock) this.error('Must submit either BalanceFromBlock or BalanceFromDate')
+    if (!balanceToBlock) this.error('Must submit either BalanceToBlock or BalanceToDate')
+    if (balanceToBlock < balanceFromBlock) {
       this.error('block to start tracking balances cannot be larger than block to finish tracking balances')
     }
-  
+
     // State over time
     const trackIssuers: AttestationIssuers = {}
     const attestationCompletions = {}

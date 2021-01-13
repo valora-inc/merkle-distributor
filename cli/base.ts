@@ -1,5 +1,6 @@
-import { flags, Command } from '@oclif/command'
+import { Command } from '@oclif/command'
 import fs from 'fs'
+import Web3 from 'web3'
 
 enum EnvNodes  {
   local     = 'http://localhost:8545',
@@ -9,9 +10,11 @@ enum EnvNodes  {
 }
 
 export abstract class BaseCommand extends Command {
-  nodeByEnv(env: string | undefined) {
+
+  static dateDisclaimer = "Date is an approximation and matches to an arbitrary block near the given date"
+  
+  nodeByEnv(env: string | undefined): string {
     if (env) {      
-      // @ts-ignore
       if (!Object.keys(EnvNodes).includes(env)) this.error(`invalid env: ${env}`) 
       return EnvNodes[env as keyof typeof EnvNodes]
     } else {
@@ -24,5 +27,20 @@ export abstract class BaseCommand extends Command {
       if (err) this.error(err)
     })
     this.log(outputDetails, ' output to file: ', filename)
+  }
+  
+  // Determine block number from user parameters. If a date was submitted, use date to calculate 
+  // corresponding block number. If no date, use the block number submitted.
+  async determineBlockNumber(block: number | undefined, date: string | undefined, web3: Web3): Promise<number | undefined> {
+    if (date) {
+      let genesisBlock = await web3.eth.getBlock(0)
+      let genesisDate: Date = new Date(parseInt(genesisBlock.timestamp.toString()) * 1000)
+      let toDate: Date = new Date(date)
+      // average block time is 5 seconds, divide 5000 to account for milliseconds
+      const blockNumber = (toDate.getTime() - genesisDate.getTime()) / 5000
+      if (blockNumber < 0) this.error(`date ${date} predates the chain. Choose a date after ${genesisDate}.`)
+      return blockNumber
+    }
+    return block
   }
 }

@@ -1,6 +1,5 @@
-import { cli } from 'cli-ux'
 import { newKit } from '@celo/contractkit'
-import { flags, Command } from '@oclif/command'
+import { flags } from '@oclif/command'
 import fs from 'fs'
 import { BaseCommand } from '../../base'
 import MerkleDistributor from '../../MerkleDistributor.json'
@@ -25,6 +24,8 @@ export default class DeployMerkleDistributor extends BaseCommand {
     if (res.flags.privateKey) {
       kit.addAccount(res.flags.privateKey)
     }
+
+    // @ts-ignore - unhappy with the abi format, but it is valid
     let merkleDistributor = new kit.web3.eth.Contract(abi)
     let contract = await merkleDistributor.deploy({
         data: MerkleDistributor.bytecode,
@@ -34,8 +35,8 @@ export default class DeployMerkleDistributor extends BaseCommand {
         gas: 1500000,
         gasPrice: '30000000000000'
     })
-    //@ts-ignore
-    this.log("Distibutor address: ", contract._address)
+
+    this.log("Distibutor address: ", contract.options.address)
     this.log("Merkle root: ", await contract.methods.merkleRoot().call())
     this.log("Token address: ", await contract.methods.token().call())
   }
