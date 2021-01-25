@@ -23,12 +23,6 @@ export abstract class BaseCommand extends Command {
     }
     return kit
   }
-
-  async getGasPrice(kit: ContractKit): Promise<string> {
-    const gasPriceMin = await kit._web3Contracts.getGasPriceMinimum()
-    const gasPrice = await gasPriceMin.methods.gasPriceMinimum().call()
-    return (gasPrice + 100).toString()
-  }
   
   nodeByEnv(env: string | undefined): string {
     if (env) {      
