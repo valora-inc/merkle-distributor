@@ -21,7 +21,9 @@
     "node": ">=10"
   },
   "devDependencies": {
-    "@celo/contractkit": "^0.4.18",
+    "@celo/base": "1.0.1",
+    "@celo/connect": "1.0.1",
+    "@celo/contractkit": "1.0.1",
     "@openzeppelin/contracts": "3.1.0",
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
@@ -30,7 +32,7 @@
     "cli-ux": "^5.4.9",
     "commander": "^6.1.0",
     "ethereum-waffle": "^3.2.0",
-    "ethereumjs-util": "^7.0.4",
+    "ethereumjs-util": "^5.2.0",
     "mocha": "^6.2.2",
     "@oclif/command": "^1",
     "prettier": "^2.0.5",
