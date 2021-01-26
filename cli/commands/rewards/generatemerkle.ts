@@ -5,11 +5,11 @@ import { flags } from '@oclif/command'
 import { EventLog } from 'web3-core'
 import { parseBalanceMap } from '../../../src/parse-balance-map'
 import { BaseCommand } from '../../base'
+import { mergeEvents } from '../../utils/events'
 import {
   AttestationIssuers,
   calculateRewards,
   initializeBalancesByBlock,
-  mergeEvents,
   processAttestationCompletion,
   processTransfer,
   RewardsCalculationState,

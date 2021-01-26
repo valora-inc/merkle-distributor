@@ -19,3 +19,38 @@ export async function getPastEvents(
   progressBar.increment()
   return prevEvents.concat(events)
 }
+
+export function mergeEvents(arr1: EventLog[], arr2: EventLog[]) {
+  const merged = []
+  let index1 = 0
+  let index2 = 0
+  let current = 0
+
+  while (current < arr1.length + arr2.length) {
+    const isArr1Depleted = index1 >= arr1.length
+    const isArr2Depleted = index2 >= arr2.length
+
+    if (!isArr1Depleted && (isArr2Depleted || isPrecedingEvent(arr1[index1], arr2[index2]))) {
+      merged[current] = arr1[index1]
+      index1++
+    } else {
+      merged[current] = arr2[index2]
+      index2++
+    }
+
+    current++
+  }
+
+  return merged
+}
+
+function isPrecedingEvent(event1: EventLog, event2: EventLog) {
+  if (event1.blockNumber < event2.blockNumber) {
+    return true
+  } else if (event2.blockNumber < event1.blockNumber) {
+    return false
+  } else {
+    return event1.transactionIndex < event2.transactionIndex ? true : false
+  }
+}
+
