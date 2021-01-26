@@ -154,7 +154,9 @@ export function calculateRewards(
       return prevWeightedBalance.plus(weightedBalance)
     }, new BigNumber(0))
     const weightedAverage = weightedSum.dividedBy(new BigNumber(toBlock - fromBlock))
-    rewards[address] = Math.floor(weightedAverage.toNumber() * rewardPercentage)
+    if (weightedAverage.toNumber() != 0) {
+      rewards[address] = Math.floor(weightedAverage.toNumber() * rewardPercentage)
+    }
   })
   return rewards
 }

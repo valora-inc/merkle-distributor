@@ -1,4 +1,6 @@
 import { Command } from '@oclif/command'
+import { ParserOutput } from '@oclif/parser/lib/parse'
+import { newKit, ContractKit } from '@celo/contractkit'
 import fs from 'fs'
 import Web3 from 'web3'
 
@@ -12,6 +14,15 @@ enum EnvNodes  {
 export abstract class BaseCommand extends Command {
 
   static dateDisclaimer = "Date is an approximation and matches to an arbitrary block near the given date"
+  
+  get kit(): ContractKit {
+    const res: ParserOutput<any, any> = this.parse()
+    let kit = newKit(this.nodeByEnv(res.flags.env))
+    if (res.flags.privateKey) {
+      kit.addAccount(res.flags.privateKey)
+    }
+    return kit
+  }
   
   nodeByEnv(env: string | undefined): string {
     if (env) {      
