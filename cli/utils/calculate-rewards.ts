@@ -1,6 +1,32 @@
 import { BigNumber } from 'bignumber.js'
 import { EventLog } from 'web3-core'
 
+const tierRewards: {[keys: number]: number} = {
+  20:  1,
+  100: 5,
+  500: 10 
+}
+const tiers = Object.keys(tierRewards).map(s => parseInt(s))
+
+function assignTier(weightedAverage: BigNumber): BigNumber {
+  const smallerThan = (tier: number) => weightedAverage.lt(toWei(tier))
+  let reward: number
+  if (smallerThan(tiers[0])) {
+    reward = 0
+  } else if (smallerThan(tiers[1])) {
+    reward = tierRewards[tiers[0]]
+  } else if (smallerThan(tierRewards[2])) {
+    reward = tierRewards[tiers[1]]
+  } else {
+    reward = tierRewards[tiers[2]]
+  }
+  return toWei(reward)
+}
+
+function toWei(num: number): BigNumber {
+  return new BigNumber(num).times(new BigNumber(10).pow(18))
+}
+
 export function initializeBalancesByBlock(state: RewardsCalculationState) {
   Object.keys(state.balances).forEach((acct) => {
     if (state.attestationCompletions[acct] >= 3) {
@@ -30,7 +56,7 @@ export interface RewardsCalculationState {
   startedBlockBalanceTracking: boolean
   blockNumberToStartTracking: number
   blockNumberToFinishTracking: number
-  rewardPercentage: number
+  celoToUsd: BigNumber
 }
 
 export interface AttestationIssuers {
@@ -107,9 +133,10 @@ export function calculateRewards(
   balancesTWA: { [address: string]: BalancesByBlock },
   fromBlock: number,
   toBlock: number,
-  rewardPercentage: number
+  celoToUsd: BigNumber
 ): { [address: string]: number } {
   let rewards: { [key: string]: number } = {}
+  let firstTier = toWei(tiers[0])
   Object.keys(balancesTWA).forEach((address) => {
     const balances = balancesTWA[address].balances
     const blocks = balancesTWA[address].blocks
@@ -120,8 +147,8 @@ export function calculateRewards(
       return prevWeightedBalance.plus(weightedBalance)
     }, new BigNumber(0))
     const weightedAverage = weightedSum.dividedBy(new BigNumber(toBlock - fromBlock))
-    if (weightedAverage.toNumber() != 0) {
-      rewards[address] = Math.floor(weightedAverage.toNumber() * rewardPercentage)
+    if (weightedAverage.gte(firstTier)) {
+      rewards[address] = assignTier(weightedAverage).div(celoToUsd).toNumber()
     }
   })
   return rewards
