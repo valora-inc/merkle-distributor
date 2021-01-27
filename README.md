@@ -42,8 +42,8 @@ To get complete documentation for each command and its parameters use the `--hel
 #### 3) Use json files from previous command to calculate rewards
   ```bash
   ./bin/run rewards:generatemerkle \
-    --attestationEvents <attestation-events.json> \
-    --transferEvents <transfer-events.json> \
+    --attestationEvents <attestation-events1.json> <attestation-events2.json>\
+    --transferEvents <transfer-events1.json> <transfer-events2.json>\
     --balanceFromBlock 2000000 \
     --balanceToBlock 3000000 \
     --reward 0.06 \
