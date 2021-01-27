@@ -1,4 +1,5 @@
 import { cli } from 'cli-ux'
+import { BigNumber } from 'bignumber.js'
 import { newKit } from '@celo/contractkit'
 import fs from 'fs'
 import { flags } from '@oclif/command'
@@ -19,9 +20,9 @@ export default class CalculateRewards extends BaseCommand {
   static description = 'Parses Events for data'
 
   static flags = {
-    reward: flags.string({
+    celoToUsd: flags.string ({
       required: true,
-      description: 'Percentage of balance reward is equal to'
+      description: 'CELO to USD conversion rate. (CELO price in dollars)'
     }),
     balanceFromBlock: flags.integer({
       required: false,
@@ -58,7 +59,7 @@ export default class CalculateRewards extends BaseCommand {
     let balanceToBlock = res.flags.balanceToBlock
     const balanceFromDate = res.flags.balanceFromDate
     const balanceToDate = res.flags.balanceToDate
-    const reward = parseFloat(res.flags.reward)
+    const celoToUsd = new BigNumber(parseFloat(res.flags.celoToUsd))
     const attestationEvents = JSON.parse(fs.readFileSync(res.flags.attestationEvents, 'utf8'))
     const transferEvents = JSON.parse(fs.readFileSync(res.flags.transferEvents, 'utf8'))
     const allEvents: EventLog[] = mergeEvents(attestationEvents, transferEvents)
@@ -85,7 +86,7 @@ export default class CalculateRewards extends BaseCommand {
       blockNumberToStartTracking: balanceFromBlock,
       blockNumberToFinishTracking: balanceToBlock,
       startedBlockBalanceTracking: false,
-      rewardPercentage: reward,
+      celoToUsd: celoToUsd
     }
 
     const progressBar = cli.progress()
@@ -122,7 +123,7 @@ export default class CalculateRewards extends BaseCommand {
       balancesByBlock,
       state.blockNumberToStartTracking,
       state.blockNumberToFinishTracking,
-      state.rewardPercentage
+      celoToUsd
     )
 
     this.outputToFile('rewardsByAddress.json', rewards, "Reward amounts")
