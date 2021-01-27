@@ -44,11 +44,13 @@ export default class CalculateRewards extends BaseCommand {
     }),
     attestationEvents: flags.string({
       required: true,
-      description: 'File containing AttestationCompleted events',
+      multiple: true,
+      description: 'Files containing AttestationCompleted events. Will accept one or multiple ordered files.',
     }),
     transferEvents: flags.string({
       required: true,
-      description: 'File containing Transfer events',
+      multiple: true,
+      description: 'Files containing Transfer events. Will accept one or multiple ordered files.',
     }),
     env: flags.string({ required: true, description: 'blockchain environment with which to interact' }),
   }
@@ -60,8 +62,8 @@ export default class CalculateRewards extends BaseCommand {
     const balanceFromDate = res.flags.balanceFromDate
     const balanceToDate = res.flags.balanceToDate
     const celoToUsd = new BigNumber(parseFloat(res.flags.celoToUsd))
-    const attestationEvents = JSON.parse(fs.readFileSync(res.flags.attestationEvents, 'utf8'))
-    const transferEvents = JSON.parse(fs.readFileSync(res.flags.transferEvents, 'utf8'))
+    const attestationEvents = eventsJSONToArray(res.flags.attestationEvents)
+    const transferEvents = eventsJSONToArray(res.flags.transferEvents)
     const allEvents: EventLog[] = mergeEvents(attestationEvents, transferEvents)
     let web3 = newKit(this.nodeByEnv(res.flags.env)).web3
 
@@ -133,4 +135,10 @@ export default class CalculateRewards extends BaseCommand {
     this.outputToFile('merkleTree.json', merkleData, 'Merkle Tree')
     console.info('Done')
   }
+}
+
+export function eventsJSONToArray(eventFiles: string[]): EventLog[] {
+  return eventFiles
+    .map((eventFile: string) => JSON.parse(fs.readFileSync(eventFile, 'utf8')))
+    .reduce((acc, el) => acc.concat(el))
 }

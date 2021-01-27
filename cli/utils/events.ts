@@ -53,4 +53,3 @@ function isPrecedingEvent(event1: EventLog, event2: EventLog) {
     return event1.transactionIndex < event2.transactionIndex ? true : false
   }
 }
-

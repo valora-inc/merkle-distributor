@@ -31,14 +31,6 @@ export default class FetchEvents extends BaseCommand {
       default: 100000,
       description: 'batch size of blocks requested by the server at a time',
     }),
-    prevAttestationEvents: flags.string({
-      required: false,
-      description: "JSON file with previous attestation events before block range" 
-    }),
-    prevTransferEvents: flags.string({
-      required: false,
-      description: "JSON file with previous transfer events before block range" 
-    }),
     env: flags.string({ required: false, description: 'blockchain environment with which to interact' }),
   }
 
@@ -49,8 +41,6 @@ export default class FetchEvents extends BaseCommand {
     const fromDate = res.flags.fromDate
     const toDate = res.flags.toDate
     const batchSize = res.flags.batchSize
-    const prevAttestationEvents = parseJsonOrEmptyArray(res.flags.prevAttestationEvents)
-    const prevTransferEvents = parseJsonOrEmptyArray(res.flags.prevTransferEvents)
     const attestations = await this.kit.contracts.getAttestations()
     const stableToken = await this.kit.contracts.getStableToken()
 
@@ -74,7 +64,7 @@ export default class FetchEvents extends BaseCommand {
       fromBlock,
       toBlock,
       batchSize,
-      prevAttestationEvents
+      []
     )
 
     const transferEvents = await getPastEvents(
@@ -84,7 +74,7 @@ export default class FetchEvents extends BaseCommand {
       fromBlock,
       toBlock,
       batchSize, 
-      prevTransferEvents
+      []
     )
 
     progressBar.stop()
@@ -93,12 +83,4 @@ export default class FetchEvents extends BaseCommand {
     this.outputToFile(attestationsFile, attestationEvents, 'AttestationCompleted events')
     this.outputToFile(transferFile, transferEvents, 'Transfer events')
   }
-}
-
-function parseJsonOrEmptyArray(json: string | undefined): any[] {
-  let prevEvents: any[] = []
-  if (json) {
-    prevEvents = JSON.parse(fs.readFileSync(json, 'utf8'))
-  }
-  return prevEvents
 }
