@@ -40,6 +40,7 @@ export abstract class BaseCommand extends Command {
     this.log(outputDetails, ' output to file: ', filename)
   }
   
+  // TODO: fix how we fetch block number: https://github.com/celo-org/merkle-distributor/issues/3
   // Determine block number from user parameters. If a date was submitted, use date to calculate 
   // corresponding block number. If no date, use the block number submitted.
   async determineBlockNumber(block: number | undefined, date: string | undefined, web3: Web3): Promise<number | undefined> {
@@ -50,7 +51,8 @@ export abstract class BaseCommand extends Command {
       // average block time is 5 seconds, divide 5000 to account for milliseconds
       const blockNumber = (toDate.getTime() - genesisDate.getTime()) / 5000
       if (blockNumber < 0) this.error(`date ${date} predates the chain. Choose a date after ${genesisDate}.`)
-      return blockNumber
+      // addition to land at 8:00 UTC
+      return blockNumber + 10625
     }
     return block
   }
