@@ -1,6 +1,5 @@
 import { flags } from '@oclif/command'
-import fs from 'fs'
-import { getPastEvents } from '../../utils/events'
+import { getPastEvents, mergeEvents } from '../../utils/events'
 import { BaseCommand } from '../../base'
 import { cli } from 'cli-ux'
 
@@ -43,6 +42,7 @@ export default class FetchEvents extends BaseCommand {
     const batchSize = res.flags.batchSize
     const attestations = await this.kit.contracts.getAttestations()
     const stableToken = await this.kit.contracts.getStableToken()
+    const accounts = await this.kit.contracts.getAccounts()
 
     // @ts-ignore
     fromBlock =  await this.determineBlockNumber(fromBlock, fromDate, this.kit.web3)
@@ -54,10 +54,19 @@ export default class FetchEvents extends BaseCommand {
     }
 
     const progressBar = cli.progress()
-    const progressBarTotal = Math.floor(((toBlock - fromBlock)/batchSize + 1) * 2)
+    const progressBarTotal = Math.floor(((toBlock - fromBlock)/batchSize + 1) * 3)
     progressBar.start(progressBarTotal, 0)
 
-    const attestationEvents = await getPastEvents(
+    const setWalletEvents = await getPastEvents(
+      progressBar,
+      accounts,
+      'AccountWalletAddressSet',
+      fromBlock,
+      toBlock,
+      batchSize,
+      []
+    )
+    const attestationCompletedEvents = await getPastEvents(
       progressBar,
       attestations,
       'AttestationCompleted',
@@ -66,6 +75,7 @@ export default class FetchEvents extends BaseCommand {
       batchSize,
       []
     )
+    const attestationEvents = mergeEvents(attestationCompletedEvents, setWalletEvents)
 
     const transferEvents = await getPastEvents(
       progressBar,

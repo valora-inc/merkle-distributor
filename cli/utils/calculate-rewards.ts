@@ -15,7 +15,7 @@ function assignTier(weightedAverage: BigNumber): BigNumber {
     reward = 0
   } else if (smallerThan(tiers[1])) {
     reward = tierRewards[tiers[0]]
-  } else if (smallerThan(tierRewards[2])) {
+  } else if (smallerThan(tiers[2])) {
     reward = tierRewards[tiers[1]]
   } else {
     reward = tierRewards[tiers[2]]
@@ -28,10 +28,10 @@ function toWei(num: number): BigNumber {
 }
 
 export function initializeBalancesByBlock(state: RewardsCalculationState) {
-  Object.keys(state.balances).forEach((acct) => {
-    if (state.attestationCompletions[acct] >= 3) {
-      state.balancesByBlock[acct] = {
-        balances: [state.balances[acct]],
+  Object.keys(state.balances).forEach((account) => {
+    if (accountIsVerified(state, account)) {
+      state.balancesByBlock[account] = {
+        balances: [state.balances[account]],
         blocks: [state.blockNumberToStartTracking],
       }
     }
@@ -50,6 +50,7 @@ function updateBalance(balances: Balances, eventLog: EventLog) {
 }
 
 export interface RewardsCalculationState {
+  walletAssociations: WalletAssociations
   attestationCompletions: AttestationCompletions
   balances: Balances
   balancesByBlock: BalancesByBlockState
@@ -59,6 +60,9 @@ export interface RewardsCalculationState {
   celoToUsd: BigNumber
 }
 
+export interface WalletAssociations {
+  [wallet: string]: string[]
+}
 export interface AttestationIssuers {
   [account: string]: string[]
 }
@@ -91,19 +95,26 @@ export function processAttestationCompletion(
     issuers[account].push(issuer)
     state.attestationCompletions[account] += 1
   }
+}
 
-  if (state.startedBlockBalanceTracking && state.attestationCompletions[account] === 3) {
-    // Just completed
-    state.balancesByBlock[account] = {
-      balances: [state.balances[account] || new BigNumber(0)],
-      blocks: [event.blockNumber],
-    }
+export function processAccountWalletAddressSet(walletAssociations: WalletAssociations, event: EventLog) {
+  const account = event.returnValues.account
+  const wallet = event.returnValues.walletAddress
+  if (!walletAssociations[wallet]) walletAssociations[wallet] = [wallet] // the wallet itself may be verified
+  if (!walletAssociations[wallet].includes(account)) walletAssociations[wallet].push(account)
+}
+
+export function accountIsVerified(state: RewardsCalculationState, account: string): boolean {
+  let walletAssociations = state.walletAssociations
+  let associatedAddresses = walletAssociations[account] ? walletAssociations[account] : [account]
+  for (let i in associatedAddresses) {
+    if (state.attestationCompletions[associatedAddresses[i]] >= 3) return true
   }
+  return false
 }
 
 export function processTransfer(state: RewardsCalculationState, event: EventLog) {
-  const { to, from } = updateBalance(state.balances, event)
-
+  const { to, from } = updateBalance(state.balances, event) 
   if (state.startedBlockBalanceTracking) {
     updateBalanceByBlock(state, from, event.blockNumber)
     updateBalanceByBlock(state, to, event.blockNumber)
@@ -115,9 +126,10 @@ function updateBalanceByBlock(
   account: string,
   blockNumber: number
 ) {
-  if (state.attestationCompletions[account] >= 3) {
-    const balancesByBlock = state.balancesByBlock[account]
-    if (balancesByBlock.balances.length > 0) {
+  // @ts-ignore
+  if (accountIsVerified(state, account)) {
+    let balancesByBlock = state.balancesByBlock[account]
+    if (balancesByBlock && balancesByBlock.balances.length > 0) {
       balancesByBlock.balances.push(state.balances[account])
       balancesByBlock.blocks.push(blockNumber)
     } else {
