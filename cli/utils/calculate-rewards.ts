@@ -107,10 +107,7 @@ export function processAccountWalletAddressSet(walletAssociations: WalletAssocia
 export function accountIsVerified(state: RewardsCalculationState, account: string): boolean {
   let walletAssociations = state.walletAssociations
   let associatedAddresses = walletAssociations[account] ? walletAssociations[account] : [account]
-  for (let i in associatedAddresses) {
-    if (state.attestationCompletions[associatedAddresses[i]] >= 3) return true
-  }
-  return false
+  return associatedAddresses.some(address => state.attestationCompletions[address] >= 3)
 }
 
 export function processTransfer(state: RewardsCalculationState, event: EventLog) {
@@ -126,9 +123,8 @@ function updateBalanceByBlock(
   account: string,
   blockNumber: number
 ) {
-  // @ts-ignore
   if (accountIsVerified(state, account)) {
-    let balancesByBlock = state.balancesByBlock[account]
+    const balancesByBlock = state.balancesByBlock[account]
     if (balancesByBlock && balancesByBlock.balances.length > 0) {
       balancesByBlock.balances.push(state.balances[account])
       balancesByBlock.blocks.push(blockNumber)

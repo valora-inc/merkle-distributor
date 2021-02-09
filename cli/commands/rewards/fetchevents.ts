@@ -1,5 +1,5 @@
 import { flags } from '@oclif/command'
-import { getPastEvents, mergeEvents } from '../../utils/events'
+import { getPastEvents, mergeEvents, eventTypes } from '../../utils/events'
 import { BaseCommand } from '../../base'
 import { cli } from 'cli-ux'
 
@@ -44,7 +44,7 @@ export default class FetchEvents extends BaseCommand {
     const stableToken = await this.kit.contracts.getStableToken()
     const accounts = await this.kit.contracts.getAccounts()
 
-    // @ts-ignore
+    // @ts-ignore - fromBlock defaults to 0 if undefined which is not assignable to (number | undefined) 
     fromBlock =  await this.determineBlockNumber(fromBlock, fromDate, this.kit.web3)
     toBlock = await this.determineBlockNumber(toBlock, toDate, this.kit.web3)
 
@@ -54,13 +54,15 @@ export default class FetchEvents extends BaseCommand {
     }
 
     const progressBar = cli.progress()
+    // progressBarTotal = number of times forno is pinged for events.
+    // (all blocks / batchSize) * number of event types fetched
     const progressBarTotal = Math.floor(((toBlock - fromBlock)/batchSize + 1) * 3)
     progressBar.start(progressBarTotal, 0)
 
     const setWalletEvents = await getPastEvents(
       progressBar,
       accounts,
-      'AccountWalletAddressSet',
+      eventTypes.AccountWalletAddressSet,
       fromBlock,
       toBlock,
       batchSize,
@@ -69,7 +71,7 @@ export default class FetchEvents extends BaseCommand {
     const attestationCompletedEvents = await getPastEvents(
       progressBar,
       attestations,
-      'AttestationCompleted',
+      eventTypes.AttestationCompleted,
       fromBlock,
       toBlock,
       batchSize,
@@ -80,13 +82,14 @@ export default class FetchEvents extends BaseCommand {
     const transferEvents = await getPastEvents(
       progressBar,
       stableToken,
-      'Transfer',
+      eventTypes.Transfer,
       fromBlock,
       toBlock,
       batchSize, 
       []
     )
 
+    progressBar.update(progressBarTotal)
     progressBar.stop()
     const attestationsFile = `attestation-completed-events-${fromBlock}-${toBlock}.json`
     const transferFile = `transfer-cusd-events-${fromBlock}-${toBlock}.json`

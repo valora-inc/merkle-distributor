@@ -6,6 +6,7 @@ import { EventLog } from 'web3-core'
 import { flags } from '@oclif/command'
 import { parseBalanceMap } from '../../../src/parse-balance-map'
 import { BaseCommand } from '../../base'
+import { eventTypes } from '../../utils/events'
 import {
   AttestationIssuers,
   calculateRewards,
@@ -96,12 +97,12 @@ export default class CalculateRewards extends BaseCommand {
 
     attestationEvents.forEach(event => {
       progressBar.increment()
-      if (event.event == 'AttestationCompleted') {
+      if (event.event === eventTypes.AttestationCompleted) {
         processAttestationCompletion(state, trackIssuers, event)
-      } else if (event.event == "AccountWalletAddressSet") {
+      } else if (event.event === eventTypes.AccountWalletAddressSet) {
         processAccountWalletAddressSet(state.walletAssociations, event)
       } else {
-        this.error(`Uknown event:\n${event}`) 
+        this.error(unknownEventError(event)) 
       }
     })
 
@@ -116,10 +117,10 @@ export default class CalculateRewards extends BaseCommand {
       } else if (event.blockNumber > state.blockNumberToFinishTracking) {
         break
       }
-      if (event.event = 'Transfer') {
+      if (event.event === eventTypes.Transfer) {
         processTransfer(state, event)
       } else {
-        this.error(`Uknown event:\n${event}`)
+        this.error(unknownEventError(event))
       }
     }
 
@@ -141,8 +142,12 @@ export default class CalculateRewards extends BaseCommand {
   }
 }
 
-export function eventsJSONToArray(eventFiles: string[]): EventLog[] {
+function eventsJSONToArray(eventFiles: string[]): EventLog[] {
   return eventFiles
     .map((eventFile: string) => JSON.parse(fs.readFileSync(eventFile, 'utf8')))
     .reduce((acc, el) => acc.concat(el))
+}
+
+function unknownEventError(event: EventLog): string {
+  return `Unknown event:\n${event}`
 }
