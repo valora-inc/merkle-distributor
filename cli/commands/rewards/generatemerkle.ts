@@ -15,6 +15,7 @@ import {
   processTransfer,
   RewardsCalculationState,
 } from '../../utils/calculate-rewards'
+import MerkleDistributor from '../../MerkleDistributor.json'
 
 export default class CalculateRewards extends BaseCommand {
   static description = 'Parses Events for data'
@@ -51,6 +52,10 @@ export default class CalculateRewards extends BaseCommand {
       required: true,
       multiple: true,
       description: 'Files containing Transfer events. Will accept one or multiple ordered files.',
+    }),
+    verifyAgainstContract: flags.string({
+      required: false,
+      description: 'Contract address of a MerkleDistributor contract that should have a matching merkle root to the one generated.'
     }),
     env: flags.string({ required: true, description: 'blockchain environment with which to interact' }),
   }
@@ -133,6 +138,18 @@ export default class CalculateRewards extends BaseCommand {
 
     const merkleData = parseBalanceMap(rewards)
     this.outputToFile('merkleTree.json', merkleData, 'Merkle Tree')
+
+    if (res.flags.verifyAgainstContract) {
+      const contractAddress = res.flags.verifyAgainstContract
+      // @ts-ignore - web3 is rejecting abi format even though it is correct (bc compiled using waffle?)
+      const contract = new this.kit.web3.eth.Contract(MerkleDistributor.abi, contractAddress)
+      const merkleRoot = await contract.methods.merkleRoot().call()
+      if (merkleRoot !== merkleData.merkleRoot) {
+        this.error(`Merkle root ${merkleRoot} from contract ${contractAddress} does not equal generated merkleRoot ${merkleData.merkleRoot}`)
+      } else {
+        this.log(`Merkle root ${merkleRoot} generated matches merkle root from contract ${contractAddress}`)
+      }
+    }
     console.info('Done')
   }
 }
