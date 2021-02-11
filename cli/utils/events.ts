@@ -1,5 +1,11 @@
 import { EventLog } from 'web3-core'
 
+export enum eventTypes  {
+  Transfer                = 'Transfer',
+  AttestationCompleted    = 'AttestationCompleted',
+  AccountWalletAddressSet = 'AccountWalletAddressSet'
+}
+
 export async function getPastEvents(
   progressBar: any,
   contract: any,

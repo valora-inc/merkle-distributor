@@ -2,11 +2,11 @@ import { cli } from 'cli-ux'
 import { BigNumber } from 'bignumber.js'
 import { newKit } from '@celo/contractkit'
 import fs from 'fs'
-import { flags } from '@oclif/command'
 import { EventLog } from 'web3-core'
+import { flags } from '@oclif/command'
 import { parseBalanceMap } from '../../../src/parse-balance-map'
 import { BaseCommand } from '../../base'
-import { mergeEvents } from '../../utils/events'
+import { eventTypes } from '../../utils/events'
 import {
   AttestationIssuers,
   calculateRewards,
@@ -14,6 +14,7 @@ import {
   processAttestationCompletion,
   processTransfer,
   RewardsCalculationState,
+  processAccountWalletAddressSet,
 } from '../../utils/calculate-rewards'
 
 export default class CalculateRewards extends BaseCommand {
@@ -64,7 +65,6 @@ export default class CalculateRewards extends BaseCommand {
     const celoToUsd = new BigNumber(parseFloat(res.flags.celoToUsd))
     const attestationEvents = eventsJSONToArray(res.flags.attestationEvents)
     const transferEvents = eventsJSONToArray(res.flags.transferEvents)
-    const allEvents: EventLog[] = mergeEvents(attestationEvents, transferEvents)
     let web3 = newKit(this.nodeByEnv(res.flags.env)).web3
 
     balanceFromBlock = await this.determineBlockNumber(balanceFromBlock, balanceFromDate, web3)
@@ -82,6 +82,7 @@ export default class CalculateRewards extends BaseCommand {
     const balances = {}
     const balancesByBlock = {}
     const state: RewardsCalculationState = {
+      walletAssociations: {},
       attestationCompletions,
       balances,
       balancesByBlock,
@@ -92,11 +93,22 @@ export default class CalculateRewards extends BaseCommand {
     }
 
     const progressBar = cli.progress()
-    progressBar.start(allEvents.length, 0)
-    
-    for(let index in allEvents) {
+    progressBar.start(attestationEvents.length + transferEvents.length, 0)
+
+    attestationEvents.forEach(event => {
       progressBar.increment()
-      const event = allEvents[index]
+      if (event.event === eventTypes.AttestationCompleted) {
+        processAttestationCompletion(state, trackIssuers, event)
+      } else if (event.event === eventTypes.AccountWalletAddressSet) {
+        processAccountWalletAddressSet(state.walletAssociations, event)
+      } else {
+        this.error(unknownEventError(event)) 
+      }
+    })
+
+    for(let index in transferEvents) {
+      progressBar.increment()
+      const event = transferEvents[index]
       if(!state.startedBlockBalanceTracking) {
         if (event.blockNumber >= state.blockNumberToStartTracking ) {
           initializeBalancesByBlock(state)
@@ -105,20 +117,13 @@ export default class CalculateRewards extends BaseCommand {
       } else if (event.blockNumber > state.blockNumberToFinishTracking) {
         break
       }
-
-      switch (event.event) {
-        case 'AttestationCompleted':
-          processAttestationCompletion(state, trackIssuers, event)
-          break
-        case 'Transfer':
-          processTransfer(state, event)
-          break
-        default:
-          throw new Error('Unknown event')
+      if (event.event === eventTypes.Transfer) {
+        processTransfer(state, event)
+      } else {
+        this.error(unknownEventError(event))
       }
     }
 
-    await progressBar.update(allEvents.length)
     progressBar.stop()
 
     const rewards = calculateRewards(
@@ -137,8 +142,12 @@ export default class CalculateRewards extends BaseCommand {
   }
 }
 
-export function eventsJSONToArray(eventFiles: string[]): EventLog[] {
+function eventsJSONToArray(eventFiles: string[]): EventLog[] {
   return eventFiles
     .map((eventFile: string) => JSON.parse(fs.readFileSync(eventFile, 'utf8')))
     .reduce((acc, el) => acc.concat(el))
+}
+
+function unknownEventError(event: EventLog): string {
+  return `Unknown event:\n${event}`
 }
