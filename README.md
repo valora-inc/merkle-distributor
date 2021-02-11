@@ -32,8 +32,9 @@ To get complete documentation for each command and its parameters use the `--hel
 
 
 #### 2) Fetch transfer and attestation events for rewards calculation
+It's best to fetch events until January, then fetch the rest and store in separate files, or else JSON can get too big for nodejs. Begin fetching next batch exactly one block after the previous batch ended using the `--fromBlock` flag. There will soon be a fix to do this automatically.
   ```bash
-  ./bin/run rewards:fetchevents --toBlock 3000000 --env mainnet
+  ./bin/run rewards:fetchevents --toDate 01/01/2021 --env mainnet
   ```
   - Outputs two files:
     - Transfer Events: `transfer-cusd-events-<fromBlock>-<toBlock>.json`
@@ -84,8 +85,8 @@ To get complete documentation for each command and its parameters use the `--hel
       --verifyAgainstContract <merkle distributor address>
       --attestationEvents <attestation-events1.json> <attestation-events2.json>\
       --transferEvents <transfer-events1.json> <transfer-events2.json>\
-      --balanceFromBlock 2000000 \
-      --balanceToBlock 3000000 \
+      --balanceFromDate 02/01/2021 \
+      --balanceToDate 02/08/2021 \
       --celoToUsd 3.08 \
       --env mainnet
   ```
