@@ -46,7 +46,7 @@ To get complete documentation for each command and its parameters use the `--hel
     --transferEvents <transfer-events1.json> <transfer-events2.json>\
     --balanceFromBlock 2000000 \
     --balanceToBlock 3000000 \
-    --reward 0.06 \
+    --celoToUsd 3.08 \
     --env mainnet
    ```
    - Outputs three files:
@@ -74,3 +74,21 @@ To get complete documentation for each command and its parameters use the `--hel
   - This is an asynchronous script that distibutes all unclaimed rewards.
   - If any of the transactions failed to complete, or returned an error, simply run the script again to retry all incomplete distributions.
   - Rewards are distributed fully when the output json `distribution-<distributor-address>.json` and `rewardsByAddress.json` mapping accounts keys match (same number of lines in each json file).
+
+
+  ## Use CLI to verify merkle root of a deployed Merkle Distribution contract for a rewards round
+  #### 1) Follow steps 1 and 2 from above so you're ready to compute a merkle root
+  #### 2) Follow step 3 and use all the parameters given for the rewards round plus the verifyAgainstContract parameter with the contract address used in the rewards round. Parameters can be found in recent discussion on the rewards forum post [found here](https://forum.celo.org/t/governance-proposal-to-reward-early-users/662/41).
+  ```bash
+     ./bin/run rewards:generatemerkle \
+      --verifyAgainstContract <merkle distributor address>
+      --attestationEvents <attestation-events1.json> <attestation-events2.json>\
+      --transferEvents <transfer-events1.json> <transfer-events2.json>\
+      --balanceFromBlock 2000000 \
+      --balanceToBlock 3000000 \
+      --celoToUsd 3.08 \
+      --env mainnet
+  ```
+   
+   - The console output will verify whether or not the merkle root computed matches the merkle root of the MerkleDistributor contract
+   - Use the output files to verify all intermediary data used to calculate the final rewards and merkle root: `merkleTree.json` `rewardsByAccount.json` `rewardsCalculationState.json` 
