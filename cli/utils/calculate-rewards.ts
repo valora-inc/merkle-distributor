@@ -2,7 +2,7 @@ import { BigNumber } from 'bignumber.js'
 import { EventLog } from 'web3-core'
 
 const tierRewards: {[keys: number]: number} = {
-  20:  1,
+  10:  1,
   100: 5,
   500: 10 
 }
