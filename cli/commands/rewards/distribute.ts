@@ -6,10 +6,10 @@ import { toTransactionObject } from '@celo/connect'
 import { concurrentMap } from "@celo/base"
 
 export default class DeployMerkleDistributor extends BaseCommand {
-  static description = 'Deploy Merkle Distributor Contract'
+  static description = 'Distribute rewards contained in Merkle Distributor contract'
 
   static flags = {
-    merkleTree: flags.string({ required: true, description: 'JSON file with rewards' }),
+    merkleTree: flags.string({ required: true, description: 'JSON file containing merkle tree rewards claims and information' }),
     address: flags.string({ required: true, description: 'Address of merkle distributor contract' }),
     env: flags.string({ required: false, description: '[default: local] Blockchain environment with which to interact' }),
     from: flags.string({ required: true, description: 'Deployer address' }),  
@@ -22,6 +22,7 @@ export default class DeployMerkleDistributor extends BaseCommand {
     const from: string = res.flags.from.toLowerCase()
     const abi = MerkleDistributor.abi 
     const distAddress = res.flags.address
+    // @ts-ignore
     const merkleDistributor = new this.kit.web3.eth.Contract(abi, distAddress)
     const distributorMerkleRoot = await merkleDistributor.methods.merkleRoot().call()
     if (merkleTree.merkleRoot != distributorMerkleRoot) {
