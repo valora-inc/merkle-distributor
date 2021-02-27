@@ -19,7 +19,7 @@ import {
 import MerkleDistributor from '../../MerkleDistributor.json'
 
 export default class CalculateRewards extends BaseCommand {
-  static description = 'Parses Events for data'
+  static description = 'Parse events to construct merkle tree containing rewards distribution'
 
   static flags = {
     celoToUsd: flags.string ({

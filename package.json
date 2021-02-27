@@ -1,60 +1,80 @@
 {
-  "name": "@uniswap/merkle-distributor",
+  "name": "@clabs/celogive",
   "author": {
-    "name": "Moody Salem"
+    "name": "Celo"
   },
-  "description": "📦 A smart contract that distributes a balance of tokens according to a merkle root",
-  "version": "1.0.1",
-  "homepage": "https://uniswap.org",
+  "description": "📦 Celo rewards CLI that uses a smart contract that distributes a balance of tokens according to a merkle root",
+  "version": "0.0.2",
+  "homepage": "https://celo.org",
+  "main": "lib/cli/index.js",
+  "bin": { "celogive": "./bin/run"},
   "keywords": [
-    "uniswap",
-    "erc20"
+    "celo",
+    "rewards",
+    "merkle"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Uniswap/merkle-distributor"
+    "url": "https://github.com/celo-org/merkle-distributor"
   },
   "files": [
-    "build"
+    "/bin",
+    "/lib",
+    "README.md"
   ],
   "engines": {
     "node": ">=10"
   },
-  "devDependencies": {
+  "dependencies": {
+    "cli-ux": "^5.4.9",
+    "@oclif/command": "^1",
+    "typescript": "^3.7.3",
     "@celo/base": "1.0.1",
     "@celo/connect": "1.0.1",
     "@celo/contractkit": "1.0.1",
+    "ethereum-waffle": "^3.2.0",
+    "ethereumjs-util": "^5.2.0"
+  },
+  "devDependencies": {
     "@openzeppelin/contracts": "3.1.0",
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
     "axios": "^0.20.0",
     "chai": "^4.2.0",
-    "cli-ux": "^5.4.9",
     "commander": "^6.1.0",
-    "ethereum-waffle": "^3.2.0",
-    "ethereumjs-util": "^5.2.0",
     "mocha": "^6.2.2",
-    "@oclif/command": "^1",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.0",
     "solc": "0.6.11",
-    "ts-node": "^8.5.4",
-    "typescript": "^3.7.3"
+    "ts-node": "^8.5.4"
   },
   "scripts": {
     "precompile": "rimraf ./build/",
     "compile": "waffle && cp build/MerkleDistributor.json cli/MerkleDistributor.json",
     "pretest": "yarn compile",
     "test": "mocha",
+    "tsc": "tsc -b .",
     "generate-merkle-root": "ts-node scripts/generate-merkle-root.ts",
     "generate-merkle-root:example": "ts-node scripts/generate-merkle-root.ts --input scripts/example.json",
     "prepublishOnly": "yarn test"
   },
   "oclif": {
-    "commands": "cli/commands",
+    "commands": "./lib/cli/commands",
     "topics": {
       "rewards": {
         "description": "Functionality for constructing and verifying consumer rewards"
+      },
+      "rewards:fetchevents": {
+        "description": "Fetch AttestationCompleted events from Attestations contract and Transfer Events from StableToken contract"
+      },
+      "rewards:generatemerkle": {
+        "description": "Parse events to construct merkle tree containing rewards distribution"
+      },
+      "rewards:deploydistributor": {
+        "description": "Deploy Merkle Distributor Contract"
+      },
+      "rewards:distribute": {
+        "description": "Distribute rewards contained in Merkle Distributor contract"
       }
     }
   }

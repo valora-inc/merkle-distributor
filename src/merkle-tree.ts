@@ -56,6 +56,7 @@ export default class MerkleTree {
       return first
     }
 
+    // @ts-ignore
     return keccak256(MerkleTree.sortAndConcat(first, second))
   }
 
