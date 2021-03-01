@@ -1,4 +1,5 @@
 import { flags } from '@oclif/command'
+import { EventLog } from 'web3-core'
 import { getPastEvents, mergeEvents, eventTypes } from '../../utils/events'
 import { BaseCommand } from '../../base'
 import { cli } from 'cli-ux'
@@ -43,6 +44,7 @@ export default class FetchEvents extends BaseCommand {
     const attestations = await this.kit.contracts.getAttestations()
     const stableToken = await this.kit.contracts.getStableToken()
     const accounts = await this.kit.contracts.getAccounts()
+    const eventsLimitPerFile = 500000 // upper limit of events JSON lib can stringify at a time
 
     // @ts-ignore - fromBlock defaults to 0 if undefined which is not assignable to (number | undefined) 
     fromBlock =  await this.determineBlockNumber(fromBlock, fromDate, this.kit.web3)
@@ -91,9 +93,19 @@ export default class FetchEvents extends BaseCommand {
 
     progressBar.update(progressBarTotal)
     progressBar.stop()
-    const attestationsFile = `attestation-completed-events-${fromBlock}-${toBlock}.json`
-    const transferFile = `transfer-cusd-events-${fromBlock}-${toBlock}.json`
-    this.outputToFile(attestationsFile, attestationEvents, 'AttestationCompleted events')
-    this.outputToFile(transferFile, transferEvents, 'Transfer events')
+    this.writeEventsToFiles(attestationEvents, 'Attestation Events', eventsLimitPerFile)
+    this.writeEventsToFiles(transferEvents, 'Transfer Events', eventsLimitPerFile)
+  }
+
+  writeEventsToFiles = (events: EventLog[], eventTitle: string, limit: number) => {
+    let n = 0
+    while (events.length > 0) {
+      const splicedEvents = events.splice(0, limit)
+      const fromBlock = splicedEvents[0].blockNumber
+      const toBlock = splicedEvents[splicedEvents.length - 1].blockNumber
+      const fileName = `${eventTitle.toLowerCase().replace(/ /g,'-')}${n}-${fromBlock}-${toBlock}.json`
+      this.outputToFile(fileName, splicedEvents, eventTitle)
+      n++
+    }
   }
 }
