@@ -47,12 +47,12 @@ export abstract class BaseCommand extends Command {
     if (date) {
       let genesisBlock = await web3.eth.getBlock(0)
       let genesisDate: Date = new Date(parseInt(genesisBlock.timestamp.toString()) * 1000)
-      let toDate: Date = new Date(date)
+      let toDate: Date = new Date(`${date}-UTC`)
       // average block time is 5 seconds, divide 5000 to account for milliseconds
       const blockNumber = (toDate.getTime() - genesisDate.getTime()) / 5000
       if (blockNumber < 0) this.error(`date ${date} predates the chain. Choose a date after ${genesisDate}.`)
-      // addition to land at 8:00 UTC
-      return blockNumber + 10625
+      // addition to land at 9:00 UTC
+      return blockNumber + 14200
     }
     return block
   }
