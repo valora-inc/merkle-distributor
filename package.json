@@ -32,7 +32,7 @@
     "@celo/base": "1.0.1",
     "@celo/connect": "1.0.1",
     "@celo/contractkit": "1.0.1",
-    "ethereum-waffle": "^3.2.0",
+    "ethereum-waffle": "^3.4.0",
     "ethereumjs-util": "^5.2.0"
   },
   "devDependencies": {
